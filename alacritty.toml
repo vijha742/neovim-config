@@ -1,0 +1,22 @@
+import = ["~/.config/alacritty/colors/rootloops.toml"]
+
+live_config_reload = true
+
+[font]
+size = 12.0
+
+[font.bold]
+family = "Hack Nerd Font"
+
+[font.bold_italic]
+family = "Hack Nerd Font"
+
+[font.italic]
+family = "Hack Nerd Font"
+
+[font.normal]
+family = "Hack Nerd Font"
+
+[window.padding]
+x = 10
+y = 5
