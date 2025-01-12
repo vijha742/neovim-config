@@ -1,7 +1,5 @@
 -- init.lua
 -- Bootstrap Lazy.nvim
-vim.g.loaded_netrw = 1
-vim.g.loaded_netrwPlugin = 1
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local lazyrepo = "https://github.com/folke/lazy.nvim.git"
@@ -9,7 +7,7 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
   if vim.v.shell_error ~= 0 then
     error("Error cloning lazy.nvim:\n" .. out)
   end
-end ---@diagnostic disable-next-line: undefined-field
+end
 vim.opt.rtp:prepend(lazypath)
 -- Set leader key
 vim.g.mapleader = ' '
@@ -25,6 +23,9 @@ vim.o.ignorecase = true
 vim.o.smartcase = true
 vim.o.wrap = false
 vim.o.termguicolors = true
+vim.o.foldmethod = "expr"
+vim.o.foldexpr = "nvim_treesitter#foldexpr()"
+vim.o.foldlevel = 99
 
 -- Global Keymaps
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
@@ -36,7 +37,8 @@ vim.keymap.set("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower win
 vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
 
 -- Clipboard support
-vim.opt.clipboard = 'unnamedplus'  -- Use the system clipboard
+-- set clipboard+=unnamedplus
+vim.opt.clipboard = 'unnamedplus' --  Use the system clipboard
 vim.api.nvim_create_autocmd("TextYankPost", {
   desc = "Highlight when yanking (copying) text",
   group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
@@ -46,12 +48,13 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 })
 
 -- Font settings
-vim.o.guifont = "Fira Code:h12"
+vim.o.guifont = "Hack Nerd Font"
 
 -- Keymaps
 local keymap = vim.api.nvim_set_keymap
 local opts = { noremap = true, silent = true }
 
+vim.api.nvim_set_keymap('n', '<leader>qs', ':Prettier<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>r', ':!javac % && java %:r<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>di', "<cmd>lua require'jdtls'.organize_imports()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>dr', "<cmd>lua require'jdtls'.code_action(false, 'refactor')<CR>", { noremap = true, silent = true })
@@ -68,9 +71,17 @@ vim.keymap.set('n', '<leader>fe', ':NvimTreeToggle<CR>', { noremap = true, silen
 require("lazy").setup({
     -- Gruvbox theme
     { "morhetz/gruvbox", config = function()
-        vim.cmd([[colorscheme gruvbox]])
+        vim.cmd([[colorscheme tokyonight]])
     end },
-  { -- Fuzzy Finder (files, lsp, etc)
+    {
+'windwp/nvim-ts-autotag',
+config = function()
+require('nvim-treesitter.configs').setup {
+  autotag = { enable = true },
+}end
+},
+
+{ -- Fuzzy Finder (files, lsp, etc)
     "nvim-telescope/telescope.nvim",
     event = "VimEnter",
     branch = "0.1.x",
@@ -197,87 +208,50 @@ require("lazy").setup({
       }
     end
   },
-  {
-    'nvim-tree/nvim-tree.lua',
-    dependencies = { 'nvim-tree/nvim-web-devicons' },
-    config = function()
-      -- Setup nvim-web-devicons (optional)
-      require('nvim-web-devicons').setup {
-        -- your icon config (optional)
-        override = {
-          zsh = {
-            icon = "",
-            color = "#428850",
-            name = "Zsh"
-          }
-        };
-        color_icons = true; -- globally enable different icon colors
-        default = true;     -- globally use default icons
-      }
-
-      -- Setup nvim-tree
-      require('nvim-tree').setup {
-        -- Disable netrw (default file explorer)
-        disable_netrw = true,
-        hijack_netrw = true,
-        auto_close = true,
-        open_on_tab = false,
-        hijack_cursor = false,
-        update_cwd = true,
-        renderer = {
-          icons = {
-            glyphs = {
-              default = "", -- Default file icon
-              symlink = "",
-              folder = {
-                arrow_open = "",
-                arrow_closed = "",
-                default = "",
-                open = "",
-                empty = "",
-                empty_open = "",
-                symlink = "",
-                symlink_open = "",
-              },
-              git = {
-                unstaged = "✗",
-                staged = "✓",
-                unmerged = "",
-                renamed = "➜",
-                untracked = "★",
-              },
-            },
-          },
-        },
-        view = {
-          width = 30,
-          side = 'left',
-          mappings = {
-            list = {
-              { key = {"l", "<CR>", "o"}, action = "edit" },
-              { key = "h", action = "close_node" },
-              { key = "v", action = "vsplit" },
-            },
-          },
-        },
-        git = {
-          enable = true,
-          ignore = false,
-        },
-        actions = {
-          open_file = {
-            quit_on_open = true,
-          },
-        },
-      }
-    end
+  {'nvim-treesitter/nvim-treesitter',
+  config = function()
+  require'nvim-treesitter.configs'.setup {
+  ensure_installed = { "java", "sql","python"},  -- Install Treesitter parser for Java
+  highlight = { enable = true },
+  indent = { enable = true },
+  fold = { enable = true }
+}
+end
+},
+{'MunifTanjim/prettier.nvim',
+config = function()
+require('prettier').setup({
+  bin = 'prettier', -- or 'prettierd'
+  filetypes = {
+    "css",
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "json",
+    "html"
   },
+})
+
+-- Format on save
+vim.api.nvim_command([[
+  autocmd BufWritePre *.js,*.java,*.ts,*.jsx,*.tsx,*.json,*.css,*.html Prettier
+]])
+end
+},
+'norcalli/nvim-colorizer.lua',
   'neovim/nvim-lspconfig',
   'hrsh7th/nvim-cmp',
   'hrsh7th/cmp-nvim-lsp',
   'hrsh7th/cmp-path',
-  'L3MON4D3/LuaSnip',
   'saadparwaiz1/cmp_luasnip',
+  {
+	"L3MON4D3/LuaSnip",
+	-- follow latest release.
+	version = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
+	-- install jsregexp (optional!).
+	build = "make install_jsregexp"
+},
   'nvim-neotest/nvim-nio',
   'lewis6991/gitsigns.nvim',
   'nvim-telescope/telescope.nvim',
@@ -288,12 +262,15 @@ require("lazy").setup({
   'lukas-reineke/indent-blankline.nvim',
   'nvim-lualine/lualine.nvim',
   'nvim-lua/plenary.nvim',
+  'github/copilot.vim',
   'numToStr/Comment.nvim', -- for commenting code
   'windwp/nvim-autopairs', -- auto closing pairs
   'folke/todo-comments.nvim',
   'folke/tokyonight.nvim',
   'tpope/vim-sleuth',
-
+{'simrat39/symbols-outline.nvim',
+vim.keymap.set('n', '<leader>o', ':SymbolsOutline<CR>', { noremap = true, silent = true })
+},
   -- Mason for LSP/DAP installer
   'williamboman/mason.nvim',
   'williamboman/mason-lspconfig.nvim',
@@ -318,9 +295,10 @@ require("lazy").setup({
 
 -- Enable Treesitter
 -- require('nvim-treesitter.configs').setup {
---   ensure_installed = "all",
+  -- ensure_installed = {"java","sql","bashls"},
 --   highlight = { enable = true },
---   indent = { enable = true },
+ --  indent = { enable = true },
+--   fold = { enable = true}
 -- }
 
 -- LSP Setup (using mason to install and configure LSP servers)
@@ -329,20 +307,20 @@ require('mason-lspconfig').setup({
   ensure_installed = { 'jdtls', 'lua_ls', 'bashls' }, -- Add other LSPs if needed
 })
 require('lspconfig').jdtls.setup{} -- Java LSP
-require("nvim-tree").setup({
-  sort = {
-    sorter = "case_sensitive",
-  },
-  view = {
-    width = 30,
-  },
-  renderer = {
-    group_empty = true,
-  },
-  filters = {
-    dotfiles = true,
-  },
+
+-- Define signs for errors, warnings, hints, and info
+local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
+for type, icon in pairs(signs) do
+  local hl = "DiagnosticSign" .. type
+  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
+
+require("nvim-dap-virtual-text").setup({
+  enabled = true,
+  highlight_changed_variables = true,
+  show_stop_reason = true,
 })
+
 -- Auto completion setup
 local cmp = require'cmp'
 local luasnip = require'luasnip'
@@ -368,10 +346,28 @@ cmp.setup({
 -- Gitsigns setup
 require('gitsigns').setup()
 
+require('colorizer').setup()
 -- Telescope setup
 require('telescope').setup{
   defaults = {
     file_ignore_patterns = { "node_modules" },
+  },
+}
+
+local dap = require('dap')
+dap.adapters.java = {
+  type = 'server',
+  host = '127.0.0.1',
+  port = 8000,  -- Ensure that your Java debug server runs on this port
+}
+
+dap.configurations.java = {
+  {
+    type = 'java',
+    request = 'launch',
+    name = "Debug (Attach) - Remote",
+    hostName = "127.0.0.1",
+    port = 8000,
   },
 }
 
@@ -402,6 +398,45 @@ require('lualine').setup({
   }
 })
 
+-- Ensure web development language servers are installed
+require('mason-lspconfig').setup({
+  ensure_installed = { 'html', 'cssls', 'jsonls', 'emmet_ls' },
+})
+
+-- LSP configurations
+require('lspconfig').html.setup{}      -- HTML
+require('lspconfig').cssls.setup{}     -- CSS
+require('lspconfig').jsonls.setup{}    -- JSON
+require('lspconfig').emmet_ls.setup{}  -- Emmet for faster HTML and CSS
+
+require('conform').setup({
+  formatters_by_ft = {
+    javascript = { "prettier" },
+    typescript = { "prettier" },
+    json = { "prettier" },
+    css = { "prettier" },
+    java = { "prettier" },
+  },
+})
+
+-- Setup ESLint (npm install -g eslint)
+require('lspconfig').eslint.setup{}
+require('lspconfig').emmet_ls.setup({
+  filetypes = { 'html', 'css', 'javascriptreact', 'typescriptreact' },
+})
+
+
+-- Snippets and autocompletion for web development
+require('luasnip.loaders.from_vscode').lazy_load()  -- Loads VSCode-like snippets
+require("cmp").setup({
+  sources = {
+    { name = 'nvim_lsp' },
+    { name = 'luasnip' },
+    { name = 'path' },
+    { name = 'buffer' },
+  },
+})
+
 -- Which-key setup
 require('which-key').setup()
 
@@ -411,10 +446,25 @@ require('fidget').setup()
 -- Additional configurations for plugins can be added here
 
 -- Enable clipboard functionality
-vim.cmd [[
-    set clipboard=unnamedplus
-]]
+-- Yank to system clipboard
+vim.api.nvim_set_keymap('n', '<leader>y', '"+y', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('v', '<leader>y', '"+y', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>Y', '"+yg_', { noremap = true, silent = true })
+
+-- Paste from system clipboard
+vim.api.nvim_set_keymap('n', '<leader>p', '"+p', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('v', '<leader>p', '"+p', { noremap = true, silent = true })
 
 -- Neovim-specific configurations (if needed)
 -- For example, if you want to customize LSP or DAP settings, add them here.
+local ls = require("luasnip")
 
+vim.keymap.set({"i"}, "<C-K>", function() ls.expand() end, {silent = true},{desc = "For expand"})
+vim.keymap.set({"i", "s"}, "<C-L>", function() ls.jump( 1) end, {silent = true},{desc = "For jumping forward"})
+vim.keymap.set({"i", "s"}, "<C-J>", function() ls.jump(-1) end, {silent = true},{desc = "For jumping backward"})
+
+vim.keymap.set({"i", "s"}, "<C-E>", function()
+	if ls.choice_active() then
+		ls.change_choice(1)
+	end
+end, {silent = true},{desc = "for changing active choice"})
